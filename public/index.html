@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <title>Список пользователей</title>
+  <link href="stylesheets/bootstrap.min.css" rel="stylesheet" />
+  <link href="stylesheets/font-awesome.min.css" rel="stylesheet">
+  <link href="stylesheets/index_style.css" rel="stylesheet">
+  <link href="stylesheets/datatables.min.css" rel="stylesheet">
+  <script src="javascripts/bootstrap.min.js"></script>
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/datatables.min.js"></script>
+</head>
+<body>
+<nav class="navbar sticky-top navbar-expand-lg navbar-light bg-light static-top mb-5 shadow">
+  <div class="container">
+    <a class="navbar-brand" href="#">Guitarshop</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarResponsive">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="/">Главная
+            <span class="sr-only">(current)</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">Каталог</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="login_page.html">Войти</a>
+        </li>
+
+      </ul>
+    </div>
+  </div>
+
+</nav>
+<!--<form name="userForm">
+  <input type="hidden" name="id" value="0" />
+  <div class="form-group">
+    <label for="name">Имя:</label>
+    <input class="form-control" name="name" />
+  </div>
+  <div class="form-group">
+    <label for="age">Возраст:</label>
+    <input class="form-control" name="age" />
+  </div>
+  <div class="panel-body">
+    <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
+    <a id="reset" class="btn btn-sm btn-primary">Сбросить</a>
+  </div>
+</form>-->
+<div class="container">
+<table id="guitarTable" class="table table-hover table-sm">
+  <thead>
+    <tr>
+      <th scope="col">Фото</th>
+      <th scope="col">Артикул</th>
+      <th scope="col">Модель</th>
+      <th scope="col">Остаток на складе</th>
+      <th>Действия</th>
+    </tr></thead>
+  <tbody>
+  </tbody>
+</table>
+</div>
+<script>
+  // Получение всех пользователей
+  function GetUsers() {
+    $.ajax({
+      url: "/api/users",
+      type: "GET",
+      contentType: "application/json",
+      success: function (users) {
+        var rows = "";
+        $.each(users, function (index, guitar) {
+          // добавляем полученные элементы в таблицу
+          rows += row(guitar);
+        })
+        $("table tbody").append(rows);
+      }
+    });
+  }
+  // Получение одного пользователя
+  function GetUser(id) {
+    $.ajax({
+      url: "/api/users/"+id,
+      type: "GET",
+      contentType: "application/json",
+      success: function (user) {
+        var form = document.forms["userForm"];
+        form.elements["id"].value = user.id;
+        form.elements["name"].value = user.name;
+        form.elements["age"].value = user.age;
+      }
+    });
+  }
+  // Добавление пользователя
+  function CreateUser(userName, userAge) {
+    $.ajax({
+      url: "api/users",
+      contentType: "application/json",
+      method: "POST",
+      data: JSON.stringify({
+        name: userName,
+        age: userAge
+      }),
+      success: function (user) {
+        reset();
+        $("table tbody").append(row(user));
+      }
+    })
+  }
+  // Изменение пользователя
+  function EditUser(userId, userName, userAge) {
+    $.ajax({
+      url: "api/users",
+      contentType: "application/json",
+      method: "PUT",
+      data: JSON.stringify({
+        id: userId,
+        name: userName,
+        age: userAge
+      }),
+      success: function (user) {
+        reset();
+        $("tr[data-rowid='" + user.id + "']").replaceWith(row(user));
+      }
+    })
+  }
+
+  // сброс формы
+  function reset() {
+    var form = document.forms["userForm"];
+    form.reset();
+    form.elements["id"].value = 0;
+  }
+
+  // Удаление пользователя
+  function DeleteUser(id) {
+    $.ajax({
+      url: "api/users/"+id,
+      contentType: "application/json",
+      method: "DELETE",
+      success: function (guitar_id) {
+        console.log(guitar_id);
+        $("tr[data-rowid='" + guitar_id + "']").remove();
+      }
+    })
+  }
+  // создание строки для таблицы
+  var row = function (guitar) {
+    let img_src;
+    if (guitar.img_src==='NULL' || guitar.img_src ==null)
+        img_src="no_image_found.png";
+    else
+        img_src=guitar.img_src;
+    return "<tr data-rowid='" + guitar.guitar_id + "'><td><img style='max-width: 170px' class='img-thumbnail' src='"+img_src+"' ></td><td>" + guitar.guitar_id + "</td>" +
+            "<td>" + guitar.guitar_name + "</td> <td>" + guitar.amount_in_stock + "</td>" +
+            "<td><a class='editLink btn btn-info' data-id='" + guitar.guitar_id + "'>Изменить</a> | " +
+            "<a class='removeLink btn btn-danger' data-id='" + guitar.guitar_id + "'>Удалить</a></td></tr>";
+  }
+  // сброс значений формы
+  $("#reset").click(function (e) {
+
+    e.preventDefault();
+    reset();
+  })
+
+  // отправка формы
+  $("form").submit(function (e) {
+    e.preventDefault();
+    var id = this.elements["id"].value;
+    var name = this.elements["name"].value;
+    var age = this.elements["age"].value;
+    if (id == 0)
+      CreateUser(name, age);
+    else
+      EditUser(id, name, age);
+  });
+
+  // нажимаем на ссылку Изменить
+  $("body").on("click", ".editLink", function () {
+    var id = $(this).data("id");
+    GetUser(id);
+  })
+  // нажимаем на ссылку Удалить
+  $("body").on("click", ".removeLink", function () {
+    var id = $(this).data("id");
+    DeleteUser(id);
+  })
+
+  // загрузка пользователей
+  GetUsers();
+
+</script>
+<script>
+  $(document).ready(function () {
+    $('#guitarTable').DataTable();
+    $('.dataTables_length').addClass('bs-select');
+  });
+</script>
+</body>
+</html>
