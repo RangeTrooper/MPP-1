@@ -5,7 +5,7 @@
     <title>Добавление товара</title>
 </head>
 <body>
-<form method="post" action="/add_data">
+<form method="post" action="/api/guitars">
     <p><input type="text" name="name" placeholder="Введите название"></p>
     <p><input type="text" name="issue" placeholder="Введите номер"></p>
     <p><input type="text" name="type" placeholder="Введите тип"></p>
@@ -16,4 +16,16 @@
     <p><button type="submit" name="add">Добавить</button></p>
 </form>
 </body>
+<script>
+    $("form").submit(function (e) {
+        e.preventDefault();
+        var id = this.elements["id"].value;
+        var name = this.elements["name"].value;
+        var age = this.elements["age"].value;
+        /*if (id == 0)
+            //CreateGuitar(name, age);
+        else
+            EditUser(id, name, age);*/
+    });
+</script>
 </html>

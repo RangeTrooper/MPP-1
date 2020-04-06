@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width" />
-  <title>Список пользователей</title>
+  <title>Guitarshop</title>
   <link href="stylesheets/bootstrap.min.css" rel="stylesheet" />
   <link href="stylesheets/font-awesome.min.css" rel="stylesheet">
   <link href="stylesheets/index_style.css" rel="stylesheet">
@@ -27,7 +27,7 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#">Каталог</a>
+          <a class="nav-link" href="adding_page.html">Добавить</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="login_page.html">Войти</a>
@@ -68,81 +68,44 @@
 </table>
 </div>
 <script>
-  // Получение всех пользователей
-  function GetUsers() {
+  function GetGuitars() {
     $.ajax({
-      url: "/api/users",
+      url: "/api/guitars",
       type: "GET",
       contentType: "application/json",
-      success: function (users) {
+      success: function (guitars) {
         var rows = "";
-        $.each(users, function (index, guitar) {
-          // добавляем полученные элементы в таблицу
+        $.each(guitars, function (index, guitar) {
           rows += row(guitar);
         })
         $("table tbody").append(rows);
       }
     });
   }
-  // Получение одного пользователя
-  function GetUser(id) {
+  function CreateGuitar() {
     $.ajax({
-      url: "/api/users/"+id,
-      type: "GET",
-      contentType: "application/json",
-      success: function (user) {
-        var form = document.forms["userForm"];
-        form.elements["id"].value = user.id;
-        form.elements["name"].value = user.name;
-        form.elements["age"].value = user.age;
-      }
-    });
-  }
-  // Добавление пользователя
-  function CreateUser(userName, userAge) {
-    $.ajax({
-      url: "api/users",
+      url: "api/guitars",
       contentType: "application/json",
       method: "POST",
       data: JSON.stringify({
-        name: userName,
-        age: userAge
+        model: model,
+        amount: amount
       }),
-      success: function (user) {
+      success: function (guitar) {
         reset();
-        $("table tbody").append(row(user));
-      }
-    })
-  }
-  // Изменение пользователя
-  function EditUser(userId, userName, userAge) {
-    $.ajax({
-      url: "api/users",
-      contentType: "application/json",
-      method: "PUT",
-      data: JSON.stringify({
-        id: userId,
-        name: userName,
-        age: userAge
-      }),
-      success: function (user) {
-        reset();
-        $("tr[data-rowid='" + user.id + "']").replaceWith(row(user));
+        $("table tbody").append(row(guitar));
       }
     })
   }
 
-  // сброс формы
   function reset() {
     var form = document.forms["userForm"];
     form.reset();
     form.elements["id"].value = 0;
   }
-
-  // Удаление пользователя
-  function DeleteUser(id) {
+  function DeleteGuitar(id) {
     $.ajax({
-      url: "api/users/"+id,
+      url: "api/guitars/"+id,
       contentType: "application/json",
       method: "DELETE",
       success: function (guitar_id) {
@@ -151,7 +114,6 @@
       }
     })
   }
-  // создание строки для таблицы
   var row = function (guitar) {
     let img_src;
     if (guitar.img_src==='NULL' || guitar.img_src ==null)
@@ -163,38 +125,22 @@
             "<td><a class='editLink btn btn-info' data-id='" + guitar.guitar_id + "'>Изменить</a> | " +
             "<a class='removeLink btn btn-danger' data-id='" + guitar.guitar_id + "'>Удалить</a></td></tr>";
   }
-  // сброс значений формы
   $("#reset").click(function (e) {
 
     e.preventDefault();
     reset();
   })
 
-  // отправка формы
-  $("form").submit(function (e) {
-    e.preventDefault();
-    var id = this.elements["id"].value;
-    var name = this.elements["name"].value;
-    var age = this.elements["age"].value;
-    if (id == 0)
-      CreateUser(name, age);
-    else
-      EditUser(id, name, age);
-  });
-
-  // нажимаем на ссылку Изменить
   $("body").on("click", ".editLink", function () {
     var id = $(this).data("id");
-    GetUser(id);
-  })
-  // нажимаем на ссылку Удалить
+    //GetGuitar(id);
+  });
   $("body").on("click", ".removeLink", function () {
     var id = $(this).data("id");
-    DeleteUser(id);
-  })
+    DeleteGuitar(id);
+  });
 
-  // загрузка пользователей
-  GetUsers();
+  GetGuitars();
 
 </script>
 <script>
