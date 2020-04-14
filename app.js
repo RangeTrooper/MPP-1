@@ -64,36 +64,71 @@ app.get("/api/users/:id", function(req, res){
     }
 });
 
-app.get("/api/login",function (req,res) {
-    let username=req.body.username;
+app.post("/api/login", function (req,res) {
+    if(!req.body) return res.sendStatus(400);
+    let username=req.body.login;
     let password=req.body.password;
-    bcrypt.hash(password,SECRET_KEY);
     let user=new User(username,password,null);
-    if (getUserFromDB(user)){
-        const expiresIn=24*60*60;
-        const accessToken=jwt.sign({login:username},SECRET_KEY,{expiresIn:expiresIn});
-        res.status(200).send({ "user":  user, "access_token":  accessToken, "expires_in":  expiresIn});
-    }
-
+    let passwordDB ;
+    let sql="SELECT password FROM user WHERE login = ?";
+    connection.query(sql, user.username,function (err,result) {
+        let results = JSON.stringify(result);
+        if (result.length>0) {
+            let temp = JSON.parse(results);
+            passwordDB = temp[0].password;
+            if (bcrypt.compareSync(password, passwordDB)) {
+                const expiresIn = 24 * 60 * 60;
+                const accessToken = jwt.sign({login: username}, SECRET_KEY, {expiresIn: expiresIn});
+                res.setHeader('Set-Cookie', 'token=' + accessToken + '; Secure, HttpOnly');
+                res.status(200).send();
+            } else {
+                res.status(401);
+            }
+        }else{
+            res.status(401).send();
+        }
+    });
 });
 
-app.post("/api/register",async function (req,res) {
+
+function  getUserFromDB(user) {
+    let data=[user.username,user.password];
+    let password='';
+    let sql="SELECT * FROM user;";
+    connection.connect();
+    connection.query(sql,"alex99", async function (err,results) {
+        await results;
+        if (err)
+            console.log(err.toString());
+
+        /*if(results.length>0)
+            return true;
+        else
+            return false;*/
+    });
+    return password;
+}
+
+app.post("/api/register",function (req,res) {
     if(!req.body) return res.sendStatus(400);
     let login=req.body.login;
     let email=req.body.email;
     let password=req.body.password;
     password= bcrypt.hashSync(password,10);
     let data=[login,email,password];
-    //let sql="INSERT INTO user (login,email,password) VALUES (?,?,?)";
-    /*connection.query(sql,data,function (err) {
+    let sql="INSERT INTO user (login,email,password) VALUES (?,?,?)";
+    connection.query(sql,data,function (err) {
         if(err)
             console.log("Error adding a new user");
         else {
             console.log("New User added");
             res.render("index");
         }
-    })*/
-    res.redirect('/index.html');
+    });
+    const expiresIn=60*60;
+    const accessToken=jwt.sign({login:login},SECRET_KEY,{expiresIn:expiresIn});
+    res.status(200).send({ "user":  login, "access_token":  accessToken, "expires_in":  expiresIn});
+    //res.redirect('/#');
 });
 
 app.post("/api/guitars", jsonParser, function (req, res) {
@@ -123,14 +158,20 @@ app.post("/api/guitars", jsonParser, function (req, res) {
 app.delete("/api/guitars/:id", function(req, res){
 
     let id = req.params.id;
-    connection.query("DELETE FROM warehouse WHERE guitar_id = ?",id,function (err,results) {
-        if (err)
-            console.log(err);
-        else {
-            console.log("Data Deleted");
-            res.send(id);
-        }
-    });
+    /*if (verifyToken(req.cookies.token))
+    {
+        connection.query("DELETE FROM warehouse WHERE guitar_id = ?",id,function (err,results) {
+            if (err)
+                console.log(err);
+            else {
+                console.log("Data Deleted");
+                res.send(id);
+            }
+        });
+    }else{
+        res.status(401);
+    }*/
+    res.status(200).send();
 
     //let data = fs.readFileSync("C:\\Users\\Alexander\\WebstormProjects\\mpp_2\\public\\data\\users.json", "utf8");
    /* let users = JSON.parse(data);
@@ -185,15 +226,8 @@ app.put("/api/users", jsonParser, function(req, res){
     }
 });
 
-const getUserFromDB = (user) => {
-    let data=[user.username,user.password];
-    connection.query("SELECT FROM user WHERE login=?, password=?",data,function (err,results) {
-        if(results.length>0)
-            return true;
-        else
-            return false;
-    });
-};
+
+
 
 process.on("SIGINT",()=>{
     connection.end();
@@ -205,4 +239,8 @@ function User(username,password,email) {
     this.username=username;
     this.password= password;
     this.email=email;
+}
+
+function verifyToken(token) {
+    return jwt.verify(token, SECRET_KEY);
 }
