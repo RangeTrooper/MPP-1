@@ -48,8 +48,15 @@ function DeleteGuitar(id) {
             withCredentials: true
         },
         success: function (guitar_id) {
-            console.log(guitar_id);
-            $("tr[data-rowid='" + guitar_id + "']").remove();
+            if (guitar_id === undefined)
+                alert("Ошибка 401. Отказано в доступе. Авторизуйтесь, чтобы продолжить");
+            else{
+                console.log(guitar_id);
+                $("tr[data-rowid='" + guitar_id + "']").remove();
+            }
+        },
+        error: function () {
+            alert("Ошибка 401. Отказано в доступе. Авторизуйтесь, чтобы продолжить");
         }
     })
 }
@@ -143,6 +150,21 @@ function RegisterUser(login,email,password){
     })
 }
 
+function logOut() {
+
+    $.ajax({
+        url: "/api/logout",
+        method: "POST",
+        xhrFields: {
+            withCredentials: true
+        },
+        success: function () {
+            showAuthButtons();
+        }
+    })
+    showAuthButtons();
+}
+
 function logIn(login, password){
     $.ajax({
         url: "/api/login",
@@ -152,7 +174,7 @@ function logIn(login, password){
             login: login,
             password: password
         }),
-        success: function (token) {
+        success: function () {
             hideAuthButtons(login);
             window.location.hash = "#main";
         }
@@ -165,6 +187,10 @@ $("#login_form").submit(function (e) {
     let password = this.elements["password_input"].value;
     logIn(login,password);
 })
+
+$("#li_logout").click(function () {
+    logOut();
+});
 
 $("#register_form").submit(function (e) {
     e.preventDefault();
@@ -190,7 +216,13 @@ $("#adding_form").submit(function (e) {
 function hideAuthButtons(login){
     $("#li_login").hide();
     $("#li_register").hide();
-    $("#li_username").text(login).show();
+    $("#li_logout").show();
+}
+
+function showAuthButtons() {
+    $("#li_login").show();
+    $("#li_register").show();
+    $("#li_logout").hide();
 }
 
 function saveToken(token) {

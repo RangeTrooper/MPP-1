@@ -77,9 +77,10 @@ app.post("/api/login", function (req,res) {
             let temp = JSON.parse(results);
             passwordDB = temp[0].password;
             if (bcrypt.compareSync(password, passwordDB)) {
-                const expiresIn = 24 * 60 * 60;
+                const expiresIn = 60 * 60;
                 const accessToken = jwt.sign({login: username}, SECRET_KEY, {expiresIn: expiresIn});
-                res.setHeader('Set-Cookie', 'token=' + accessToken + '; Secure, HttpOnly');
+                //res.setHeader('Set-Cookie', 'token=' + accessToken + '; expires = 16 Apr 2020 00:00:00;Secure, HttpOnly');
+                res.setHeader('Set-Cookie', 'token=' + accessToken + '; expires = '+ setExpiringTime()+';Secure, HttpOnly');
                 res.status(200).send();
             } else {
                 res.status(401);
@@ -90,6 +91,14 @@ app.post("/api/login", function (req,res) {
     });
 });
 
+
+function setExpiringTime() {
+    let currentTime = new Date();
+    let time = currentTime.getTime();
+    let expireTime = time + 1000*3600;
+    currentTime.setTime(expireTime);
+    return currentTime.toUTCString();
+}
 
 function  getUserFromDB(user) {
     let data=[user.username,user.password];
@@ -108,6 +117,12 @@ function  getUserFromDB(user) {
     });
     return password;
 }
+
+app.post("/api/logout", function (req,res) {
+    let token = req.cookies.token;
+    res.setHeader('Set-Cookie', 'token= ; expires=Thu, 01 Jan 1970 00:00:00 UTC; Secure, HttpOnly');
+    res.status(200).send();
+});
 
 app.post("/api/register",function (req,res) {
     if(!req.body) return res.sendStatus(400);
@@ -158,8 +173,10 @@ app.post("/api/guitars", jsonParser, function (req, res) {
 app.delete("/api/guitars/:id", function(req, res){
 
     let id = req.params.id;
-    /*if (verifyToken(req.cookies.token))
-    {
+    let token =req.cookies.token;
+    if (token === undefined)
+        res.status(401).send();
+    else if (verifyToken(req.cookies.token)){
         connection.query("DELETE FROM warehouse WHERE guitar_id = ?",id,function (err,results) {
             if (err)
                 console.log(err);
@@ -168,66 +185,10 @@ app.delete("/api/guitars/:id", function(req, res){
                 res.send(id);
             }
         });
-    }else{
-        res.status(401);
-    }*/
-    res.status(200).send();
-
-    //let data = fs.readFileSync("C:\\Users\\Alexander\\WebstormProjects\\mpp_2\\public\\data\\users.json", "utf8");
-   /* let users = JSON.parse(data);
-    let index = -1;
-    // находим индекс пользователя в массиве
-    for(let i=0; i<users.length; i++){
-        if(users[i].id===id){
-            index=i;
-            break;
-        }
+    }else {
+        res.send();
     }
-    if(index > -1){
-        // удаляем пользователя из массива по индексу
-        let user = users.splice(index, 1)[0];
-         data = JSON.stringify(users);
-        fs.writeFileSync("C:\\Users\\Alexander\\WebstormProjects\\mpp_2\\public\\data\\users.json", data);
-        // отправляем удаленного пользователя
-        res.send(user);
-    }
-    else{
-        res.status(404).send();
-    }*/
-});
-// изменение пользователя
-app.put("/api/users", jsonParser, function(req, res){
-
-    if(!req.body) return res.sendStatus(400);
-
-    let userId = req.body.id;
-    let userName = req.body.name;
-    let userAge = req.body.age;
-
-    let data = fs.readFileSync("C:\\Users\\Alexander\\WebstormProjects\\mpp_2\\public\\data\\users.json", "utf8");
-    let users = JSON.parse(data);
-    let user;
-    for(let i=0; i<users.length; i++){
-        if(users[i].id===userId){
-            user = users[i];
-            break;
-        }
-    }
-    // изменяем данные у пользователя
-    if(user){
-        user.age = userAge;
-        user.name = userName;
-        let data = JSON.stringify(users);
-        fs.writeFileSync("C:\\Users\\Alexander\\WebstormProjects\\mpp_2\\public\\data\\users.json", data);
-        res.send(user);
-    }
-    else{
-        res.status(404).send(user);
-    }
-});
-
-
-
+    });
 
 process.on("SIGINT",()=>{
     connection.end();
