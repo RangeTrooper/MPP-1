@@ -11,6 +11,9 @@
     <script src="javascripts/jquery.js"></script>
     <script src="javascripts/bootstrap.min.js"></script>
     <script src="javascripts/datatables.min.js"></script>
+    <link href="stylesheets/fine-uploader-new.css" rel="stylesheet">
+    <script src="javascripts/jquery.fine-uploader.js"></script>
+
 </head>
 <body>
 <nav class="navbar sticky-top navbar-expand-lg navbar-light bg-light static-top mb-5 shadow">
@@ -39,7 +42,7 @@
 
                 <!--MUST BE SHOWN AFTER USER LOGGED ID -->
 
-                <li id="li_logout" class="nav-item navLis">
+                <li id="li_logout" class="nav-item navLis" style="display: none">
                     <a class="nav-link" href="#">Выйти</a>
                 </li>
             </ul>
@@ -52,22 +55,6 @@
 
     <!-- -=-=-=-=-=MAIN PAGE  -=-=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-->
     <div class="page" id=mainPage>
-
-        <!--<form name="userForm">
-          <input type="hidden" name="id" value="0" />
-          <div class="form-group">
-            <label for="name">Имя:</label>
-            <input class="form-control" name="name" />
-          </div>
-          <div class="form-group">
-            <label for="age">Возраст:</label>
-            <input class="form-control" name="age" />
-          </div>
-          <div class="panel-body">
-            <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
-            <a id="reset" class="btn btn-sm btn-primary">Сбросить</a>
-          </div>
-        </form>-->
         <div class="container">
             <table id="guitarTable" class="table table-hover table-sm">
                 <thead>
@@ -147,13 +134,13 @@
                                 <div class="input-group-append">
                                     <span class="input-group-text"><i class="fas fa-user"></i></span>
                                 </div>
-                                <input type="text" name="login_input" class="form-control input_user" value="" placeholder="логин">
+                                <input type="text" name="login_input" class="form-control input_user" value="" placeholder="логин" required>
                             </div>
                             <div class="input-group mb-2">
                                 <div class="input-group-append">
                                     <span class="input-group-text"><i class="fas fa-key"></i></span>
                                 </div>
-                                <input type="password" name="password_input" class="form-control input_pass" value="" placeholder="пароль">
+                                <input type="password" name="password_input" class="form-control input_pass" value="" placeholder="пароль" required>
                             </div>
                             <div class="form-group">
                                 <div class="custom-control custom-checkbox">
@@ -173,18 +160,27 @@
 
     <!-- ADDING PAGE -=-=-=-=-=-=-=--->
     <div class="page" id=addingPage>
-        <form id="adding_form" method="post" action="/api/guitars">
-            <p><input type="text" name="name" placeholder="Введите название"></p>
-            <p><input type="text" name="issue" placeholder="Введите номер"></p>
-            <p><input type="text" name="type" placeholder="Введите тип"></p>
-            <p><input type="text" name="category" placeholder="Введите категорию"></p>
-            <p><input type="text" name="tags" placeholder="Введите теги"></p>
-            <p><input type="text" name="id" placeholder="Введите ID"></p>
-            <p><input type="text" name="price" placeholder="Введите цену"></p>
+        <form id="adding_form">
+            <p><label> Название
+                <input type="text" name="model" placeholder="Введите модель" required>
+            </label></p>
+            <p><label> Артикул
+                <input type="number" name="guitar_id" placeholder="Введите артикул" required>
+            </label></p>
+            <p><label> Остаток
+                <input type="text" name="amount" placeholder="Введите остаток" required>
+            </label></p>
+            <p><label> Имя файла
+                <input type="text" name="filename" placeholder="Введите остаток">
+            </label></p>
+            <p><label> Добавить фото
+                <input id="file_input" name="image" type="file" onchange="uploadFile(this)">
+            </label></p>
             <p><button type="submit" name="add">Добавить</button></p>
         </form>
     </div>
 </main>
 <script src="main.js"></script>
+
 </body>
 </html>

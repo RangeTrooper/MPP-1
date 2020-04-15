@@ -1,3 +1,22 @@
+window.onload = function () {
+    $.ajax({
+        url: '/api/verify',
+        type: "GET",
+        success: function (res) {
+            if (res)
+                hideAuthButtons();
+            else
+                showAuthButtons();
+        }
+    });
+    /*let loaded = sessionStorage.getItem('loaded');
+    if (loaded){
+        reloaded();
+    }else{
+        sessionStorage.setItem('loaded',true);
+    }*/
+}
+
 function GetGuitars() {
     $.ajax({
         url: "/api/guitars",
@@ -17,26 +36,28 @@ function GetGuitars() {
     });
 }
 
-function CreateGuitar() {
+function addGuitar(model, amount, id, imageSrc) {
+    if (imageSrc.length ===0)
+        imageSrc = null;
     $.ajax({
-        url: "api/guitars",
+        url: "/api/guitars",
         contentType: "application/json",
         method: "POST",
         data: JSON.stringify({
             model: model,
-            amount: amount
+            amount: amount,
+            id: id,
+            imageSrc: imageSrc
         }),
         success: function (guitar) {
-            reset();
+            $("#adding_form").find("input").val('');
             $("table tbody").append(row(guitar));
         }
     })
 }
 
 function reset() {
-    var form = document.forms["userForm"];
-    form.reset();
-    form.elements["id"].value = 0;
+    $("form").reset();
 }
 
 function DeleteGuitar(id) {
@@ -48,8 +69,10 @@ function DeleteGuitar(id) {
             withCredentials: true
         },
         success: function (guitar_id) {
-            if (guitar_id === undefined)
+            if (guitar_id === undefined) {
                 alert("Ошибка 401. Отказано в доступе. Авторизуйтесь, чтобы продолжить");
+                showAuthButtons();
+            }
             else{
                 console.log(guitar_id);
                 $("tr[data-rowid='" + guitar_id + "']").remove();
@@ -57,6 +80,7 @@ function DeleteGuitar(id) {
         },
         error: function () {
             alert("Ошибка 401. Отказано в доступе. Авторизуйтесь, чтобы продолжить");
+            showAuthButtons();
         }
     })
 }
@@ -94,7 +118,6 @@ window.onhashchange = function () {
 }
 
 function render(hashKey) {
-    $("#li_username").hide();
     let pages = document.querySelectorAll(".page");
     for (let i = 0; i < pages.length; ++i) {
         pages[i].style.display = 'none';
@@ -145,7 +168,8 @@ function RegisterUser(login,email,password){
             password:password
         }),
         success: function (token) {
-            saveToken(token);
+            hideAuthButtons(login);
+            window.location.hash = "#main";
         }
     })
 }
@@ -204,13 +228,11 @@ $("#register_form").submit(function (e) {
 
 $("#adding_form").submit(function (e) {
     e.preventDefault();
-    var id = this.elements["id"].value;
-    var name = this.elements["name"].value;
-    var age = this.elements["age"].value;
-    /*if (id == 0)
-        //CreateGuitar(name, age);
-    else
-        EditUser(id, name, age);*/
+    let model = this.elements["model"].value;
+    let amountInStock = this.elements["amount"].value;
+    let id = this.elements["guitar_id"].value;
+    let imageSrc = this.elements["image"].value;;
+    addGuitar(model, amountInStock,id,imageSrc)
 });
 
 function hideAuthButtons(login){
@@ -225,6 +247,10 @@ function showAuthButtons() {
     $("#li_logout").hide();
 }
 
-function saveToken(token) {
-    document.cook
+
+
+async function uploadFile(input) {
+    let formData = new FormData();
+    formData.append("file", input.files[0]);
+    await fetch('/api/upload',{method: "POST", body: formData});
 }

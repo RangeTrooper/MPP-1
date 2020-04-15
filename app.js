@@ -4,6 +4,7 @@ let cookieParser = require('cookie-parser');
 let logger = require('morgan');
 let bodyParser = require("body-parser");
 let fs = require("fs");
+let busboy = require ("connect-busboy");
 
 const validator = require('validator');
 const bcrypt = require('bcrypt');
@@ -16,6 +17,7 @@ let jsonParser = bodyParser.json();
 
 let app = express();
 
+app.use(busboy());
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -42,25 +44,13 @@ app.get("/api/guitars", function(req, res){
         res.send(content);
     });
 });
-app.get("/api/users/:id", function(req, res){
 
-    let id = req.params.id; // получаем id
-    let content = fs.readFileSync("C:\\Users\\Alexander\\WebstormProjects\\mpp_2\\public\\data\\users.json", "utf8");
-    let users = JSON.parse(content);
-    let user = null;
-    // находим в массиве пользователя по id
-    for(let i=0; i<users.length; i++){
-        if(users[i].id===id){
-            user = users[i];
-            break;
-        }
-    }
-    // отправляем пользователя
-    if(user){
-        res.send(user);
-    }
-    else{
-        res.status(404).send();
+app.get('/api/verify', function (req,res){
+    let token =req.cookies.token;
+    if (token === undefined)
+        res.send(false);
+    else if (verifyToken(req.cookies.token)) {
+        res.send(true);
     }
 });
 
@@ -79,7 +69,6 @@ app.post("/api/login", function (req,res) {
             if (bcrypt.compareSync(password, passwordDB)) {
                 const expiresIn = 60 * 60;
                 const accessToken = jwt.sign({login: username}, SECRET_KEY, {expiresIn: expiresIn});
-                //res.setHeader('Set-Cookie', 'token=' + accessToken + '; expires = 16 Apr 2020 00:00:00;Secure, HttpOnly');
                 res.setHeader('Set-Cookie', 'token=' + accessToken + '; expires = '+ setExpiringTime()+';Secure, HttpOnly');
                 res.status(200).send();
             } else {
@@ -100,24 +89,6 @@ function setExpiringTime() {
     return currentTime.toUTCString();
 }
 
-function  getUserFromDB(user) {
-    let data=[user.username,user.password];
-    let password='';
-    let sql="SELECT * FROM user;";
-    connection.connect();
-    connection.query(sql,"alex99", async function (err,results) {
-        await results;
-        if (err)
-            console.log(err.toString());
-
-        /*if(results.length>0)
-            return true;
-        else
-            return false;*/
-    });
-    return password;
-}
-
 app.post("/api/logout", function (req,res) {
     let token = req.cookies.token;
     res.setHeader('Set-Cookie', 'token= ; expires=Thu, 01 Jan 1970 00:00:00 UTC; Secure, HttpOnly');
@@ -136,38 +107,34 @@ app.post("/api/register",function (req,res) {
         if(err)
             console.log("Error adding a new user");
         else {
-            console.log("New User added");
-            res.render("index");
+            const expiresIn = 60 * 60;
+            const accessToken = jwt.sign({login: login}, SECRET_KEY, {expiresIn: expiresIn});
+            res.setHeader('Set-Cookie', 'token=' + accessToken + '; expires = '+ setExpiringTime()+';Secure, HttpOnly');
+            res.status(200).send();
         }
     });
-    const expiresIn=60*60;
-    const accessToken=jwt.sign({login:login},SECRET_KEY,{expiresIn:expiresIn});
-    res.status(200).send({ "user":  login, "access_token":  accessToken, "expires_in":  expiresIn});
-    //res.redirect('/#');
 });
 
 app.post("/api/guitars", jsonParser, function (req, res) {
 
     if(!req.body) return res.sendStatus(400);
-    //дописать логику записи в БД
-    connection.query("INSERT INTO warehouse VALUES (?,?,?,?,?)");
-    let userName = req.body.name;
-    let userAge = req.body.age;
-    let user = {name: userName, age: userAge};
-
-    let data = fs.readFileSync("C:\\Users\\Alexander\\WebstormProjects\\mpp_2\\public\\data\\users.json", "utf8");
-    let users = JSON.parse(data);
-
-    // находим максимальный id
-    let id = Math.max.apply(Math,users.map(function(o){return o.id;}))
-    // увеличиваем его на единицу
-    user.id = id+1;
-    // добавляем пользователя в массив
-    users.push(user);
-    data = JSON.stringify(users);
-    // перезаписываем файл с новыми данными
-    fs.writeFileSync("C:\\Users\\Alexander\\WebstormProjects\\mpp_2\\public\\data\\users.json", data);
-    res.send(user);
+    let model = req.body.model;
+    let guitar_id = req.body.id;
+    let amount = req.body.amount;
+    let img_src = req.body.imageSrc;
+    if (img_src !== null){
+        let array = img_src.split('\\');
+        img_src = array[array.length - 1];
+    }
+    let data = [guitar_id, model, amount, img_src];
+    let obj = {guitar_id: guitar_id, guitar_name: model, img_src: img_src, amount_in_stock: amount};
+    let sql = "INSERT INTO warehouse VALUES (?,?,?,?)";
+    connection.query(sql,data, function (err, results) {
+        if (err)
+            res.status(400).send();
+        else
+            res.send(JSON.parse(JSON.stringify(obj)));
+    });
 });
 
 app.delete("/api/guitars/:id", function(req, res){
@@ -189,6 +156,20 @@ app.delete("/api/guitars/:id", function(req, res){
         res.send();
     }
     });
+
+app.post('/api/upload',function (req, res) {
+    //let file = req.files.
+    let fstream;
+    req.pipe(req.busboy);
+    req.busboy.on('file', function (fieldname, file, filename) {
+        console.log("Uploading: " + filename);
+        fstream = fs.createWriteStream(__dirname +  '\\public\\images\\'+ filename);
+        file.pipe(fstream);
+        fstream.on('close', function () {
+            res.redirect('back');
+        });
+    });
+});
 
 process.on("SIGINT",()=>{
     connection.end();
